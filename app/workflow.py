@@ -6,7 +6,7 @@ from app.agents.guideline_agent import run_guideline_agent
 from app.agents.chart_agent import ChartAgent
 from app.agents.form_writer import FormWriter
 
-from app.rag.retriever import PatientRetriever
+from app.rag.retrieve import PatientRetriever
 
 from app.services.evidence_matcher import EvidenceMatcher
 from app.services.validator import Validator

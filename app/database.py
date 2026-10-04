@@ -136,7 +136,7 @@ def mark_request_failed(request_id: int, error_message: str):
         UPDATE prior_auth_requests
         SET 
             status = ?,
-            final_decision = ?,
+            final_decision = ?
         WHERE id = ?
         """,
         ("FAILED",

@@ -4,3 +4,4 @@ _pycache_/
 *.pyc
 vectorstore/*
 .pytest_cache/
+.env
