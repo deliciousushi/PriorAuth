@@ -9,3 +9,4 @@ pymupdf
 chromadb
 sentence-transformers
 pytest
+python-docx

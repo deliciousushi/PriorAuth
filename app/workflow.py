@@ -14,6 +14,7 @@ from app.services.validator import Validator
 
 class PriorAuthState(TypedDict, total=False):
 
+    request_id: int
     patient_id: str
     treatment: str
     insurer: str
@@ -35,6 +36,10 @@ def guideline_node(state: PriorAuthState):
         pdf_path=state["guideline_path"],
         treatment_name=state["treatment"]
     )
+    print("=====Guideline debug=====")
+    print("Guideline: ", guideline)
+    print("requirements: ", guideline.requirements)
+    print("requirement counts: ", len(guideline.requirements))
 
     return {
         "guideline": guideline
@@ -43,7 +48,9 @@ def guideline_node(state: PriorAuthState):
 
 def chart_node(state: PriorAuthState):
 
-    retriever = PatientRetriever()
+    retriever = PatientRetriever(
+        request_id=state["request_id"]
+    )
 
     chart_agent = ChartAgent(
         retriever=retriever
@@ -93,7 +100,8 @@ def evidence_node(state: PriorAuthState):
             requirement_id=requirement.requirement_id,
             requirement=requirement.description,
             evidence_required=requirement.evidence_required,
-            evidence=requirement_evidence
+            condition=requirement.condition,
+            evidence=requirement_evidence,
         )
 
         matches.append(match)
@@ -124,27 +132,16 @@ def validation_node(state: PriorAuthState):
 
     validator = Validator()
 
-    errors = validator.validate_required_fields(
-        state["draft"]
-    )
-
-    if errors:
-
-        return {
-            "validation_errors": errors,
-            "validation_result": "FAIL"
-        }
-
-    result = validator.validate_claims(
-        state["draft"],
-        state["evidence_matches"]
+    result = validator.validate(
+        draft=state["draft"],
+        guideline=state["guideline"],
+        evidence_matches=state["evidence_matches"],
     )
 
     return {
-        "validation_errors": [],
-        "validation_result": result
+        "validation_errors": result["errors"],
+        "validation_result": result["status"],
     }
-
 
 def build_workflow():
 

@@ -1,16 +1,12 @@
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.services.groq_client import get_llm
-from app.models.evidence import (
-    EvidenceItem,
-    EvidenceResponse
-)
+from app.models.evidence import EvidenceItem, EvidenceResponse
 
 
 class ChartAgent:
 
     def __init__(self, retriever):
-
         self.retriever = retriever
         self.llm = get_llm()
 
@@ -23,9 +19,11 @@ class ChartAgent:
 
         query = f"""
 Insurance requirement:
+
 {requirement}
 
-Evidence needed:
+Evidence that may be relevant:
+
 {", ".join(evidence_required)}
 """
 
@@ -43,6 +41,7 @@ Evidence needed:
                 f"""
 DOCUMENT: {item["document"]}
 PAGE: {item.get("page")}
+
 TEXT:
 {item["text"]}
 """
@@ -57,30 +56,37 @@ TEXT:
                     """
 You are the Chart Reviewer in a Prior Authorization system.
 
-Use ONLY the supplied patient records.
+Task: Extract patient-record evidence relevant to insurance requirements.
 
-Do not invent patient information.
+Rules:
+1. Use ONLY supplied patient records.
+2. NEVER invent patient info.
+3. Return ALL relevant evidence, even if it shows requirement NOT met.
+4. Do NOT decide satisfaction of requirement.
+5. Do NOT reject contradictory evidence.
+6. If no evidence, return [].
+7. Include section/note/heading/page number when possible.
+8. Preserve source document.
+9. No outside medical knowledge.
 
-Return only evidence that is relevant to the
-insurance requirement.
-
-If there is no relevant evidence, return an empty list.
+Output: Structured schema with traceable evidence.
 """
                 ),
                 (
                     "human",
                     """
-REQUIREMENT:
-
+INSURANCE REQUIREMENT:
 {requirement}
 
-EVIDENCE REQUIRED:
-
+EVIDENCE TYPES OF INTEREST:
 {evidence_required}
 
 PATIENT RECORDS:
-
 {context}
+
+Find all patient-record evidence relevant to the requirement.
+Return evidence only, not judgment.
+
 """
                 )
             ]
@@ -96,7 +102,19 @@ PATIENT RECORDS:
             {
                 "requirement": requirement,
                 "evidence_required": evidence_required,
-                "context": context
+                "context": "\n\n".join(
+                    [
+                        f"""
+                DOCUMENT: {item["document"]}
+                PAGE: {item.get("page")}
+                SOURCE REFERENCE: {item.get("reference")}
+
+                TEXT:
+                {item["text"]}
+                """
+                        for item in retrieved
+                    ]
+                )
             }
         )
 
